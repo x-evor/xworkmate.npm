@@ -1,0 +1,34 @@
+{
+  "name": "xworkmate",
+  "version": "2026.3.24",
+  "description": "XWorkmate CLI wrapper for OpenClaw pairing",
+  "keywords": [
+    "xworkmate",
+    "openclaw",
+    "gateway",
+    "pairing",
+    "qr"
+  ],
+  "bin": {
+    "xworkmate": "./bin/xworkmate.js"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./cli-entry": "./bin/xworkmate.js"
+  },
+  "files": [
+    "bin",
+    "index.js",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "qrcode-terminal": "^0.12.0"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.18"
+  }
+}
