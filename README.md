@@ -1,12 +1,9 @@
 # xworkmate
 
-`xworkmate` is a small npm CLI that wraps `openclaw qr` and prints a branded pairing flow for XWorkmate.
+`xworkmate` is an npm CLI for pairing with OpenClaw gateways. It supports two modes:
 
-It does not run a relay service, install a background daemon, or replace OpenClaw's pairing protocol. It only helps generate:
-
-- an ASCII QR code
-- a setup code
-- the next approval commands
+1. **OpenClaw QR mode** - Wraps `openclaw qr` for simple QR code generation
+2. **Relay mode** - Direct WebSocket connection to gateway with background service support
 
 ## Install
 
@@ -21,6 +18,8 @@ npm install -g xworkmate
 3. `openclaw` from `PATH`
 
 ## Usage
+
+### OpenClaw QR Mode
 
 Generate a QR code and setup code:
 
@@ -46,6 +45,39 @@ Remote gateway mode:
 xworkmate pair --remote
 ```
 
+### Relay Mode
+
+Connect directly to a gateway via WebSocket:
+
+```bash
+xworkmate pair --server ws://localhost:18789
+```
+
+With background service installation:
+
+```bash
+xworkmate pair --server ws://localhost:18789 --install-service
+```
+
+Run the relay daemon manually:
+
+```bash
+xworkmate relay-daemon
+```
+
+### Options
+
+- `--server <url>` - Connect to gateway directly (relay mode)
+- `--install-service` - Install background service (requires `--server`)
+- `--remote` - Remote gateway mode (OpenClaw QR mode)
+- `--url <url>` - Custom gateway URL (OpenClaw QR mode)
+- `--public-url <url>` - Custom public URL (OpenClaw QR mode)
+- `--token <token>` - Auth token
+- `--password <password>` - Auth password
+- `--setup-code-only` - Only print setup code, no QR
+- `--json` - Emit JSON output
+- `--no-ascii` - Disable ASCII QR code
+
 ## Approval
 
 After the mobile device scans the QR, approve the pairing from an authorized OpenClaw operator device:
@@ -54,6 +86,16 @@ After the mobile device scans the QR, approve the pairing from an authorized Ope
 openclaw devices list
 openclaw devices approve <requestId>
 ```
+
+## Background Service
+
+The relay mode can install a background service that maintains a persistent connection to the gateway:
+
+- **macOS**: launchd agent at `~/Library/LaunchAgents/com.xworkmate.relay.plist`
+- **Linux**: systemd user service at `~/.config/systemd/user/xworkmate-relay.service`
+- **Windows**: Scheduled task named `XWorkmateRelay`
+
+Logs are written to `~/.xworkmate/relay.log`.
 
 ## Development
 
