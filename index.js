@@ -7,7 +7,7 @@ import { loadOrCreateIdentity } from "./lib/identity.js";
 import { installService } from "./lib/service-manager.js";
 import { runRelayDaemon } from "./lib/relay-daemon.js";
 
-const VERSION = "2026.3.24";
+const VERSION = "2026.3.25";
 
 export function printHelp(stdout = process.stdout) {
   stdout.write(
