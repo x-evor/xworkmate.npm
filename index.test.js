@@ -16,6 +16,8 @@ describe("parsePairArgs", () => {
         "--no-ascii",
       ]),
     ).toEqual({
+      server: undefined,
+      installService: false,
       remote: true,
       url: "wss://remote.example.com",
       publicUrl: undefined,

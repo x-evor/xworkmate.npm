@@ -73,6 +73,8 @@ export function parsePairArgs(argv) {
           } else {
             options[key] = true;
           }
+        } else if (current === "--no-ascii") {
+          options.ascii = false;
         } else {
           options[key] = true;
         }
