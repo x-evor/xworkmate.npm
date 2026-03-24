@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import process from "node:process";
 import { GatewayClient } from "./lib/gateway-client.js";
-import { writeConfig, getDisplayName } from "./lib/config.js";
+import { readConfig, writeConfig, getDisplayName } from "./lib/config.js";
 import { loadOrCreateIdentity } from "./lib/identity.js";
 import { installService } from "./lib/service-manager.js";
 import { runRelayDaemon } from "./lib/relay-daemon.js";
@@ -188,6 +188,18 @@ export function renderAsciiQr(setupCode, qrGenerate) {
   });
 }
 
+export function buildPairingQrPayload(payload) {
+  return JSON.stringify({
+    version: 1,
+    kind: "xworkmate.setup",
+    setupCode: payload.setupCode,
+    gatewayUrl: payload.gatewayUrl,
+    auth: payload.auth,
+    urlSource: payload.urlSource,
+    sourceCommand: payload.sourceCommand ?? "xworkmate pair",
+  });
+}
+
 export function formatHumanPairOutput(payload, asciiQr) {
   const lines = [
     "XWorkmate Pair",
@@ -215,6 +227,7 @@ export function formatHumanPairOutput(payload, asciiQr) {
 export async function runRelayModePair(options, { stdout = process.stdout, stderr = process.stderr } = {}) {
   const gatewayUrl = options.server;
   const identity = loadOrCreateIdentity();
+  const currentConfig = readConfig();
 
   stdout.write(`XWorkmate Relay Mode\n`);
   stdout.write(`Gateway: ${gatewayUrl}\n`);
@@ -241,8 +254,19 @@ export async function runRelayModePair(options, { stdout = process.stdout, stder
             // Display QR code if not --setup-code-only
             if (!options.setupCodeOnly) {
               loadQrGenerate().then((qrGenerate) => {
+                const qrPayload = buildPairingQrPayload({
+                  setupCode,
+                  gatewayUrl,
+                  auth: options.token
+                    ? "token"
+                    : options.password
+                      ? "password"
+                      : "none",
+                  urlSource: "server",
+                  sourceCommand: "xworkmate pair --server",
+                });
                 stdout.write("Scan this QR with XWorkmate:\n\n");
-                qrGenerate(setupCode, { small: true }, (output) => {
+                qrGenerate(qrPayload, { small: true }, (output) => {
                   stdout.write(output + "\n\n");
                 });
               });
@@ -265,9 +289,12 @@ export async function runRelayModePair(options, { stdout = process.stdout, stder
 
           // Save config
           writeConfig({
+            ...currentConfig,
             gatewayUrl,
             deviceId: identity.deviceId,
-            displayName: getDisplayName() || "xworkmate",
+            displayName: getDisplayName() || currentConfig.displayName || "xworkmate",
+            token: options.token?.trim() || currentConfig.token,
+            password: options.password?.trim() || currentConfig.password,
           });
 
           if (options.installService) {
@@ -349,7 +376,7 @@ export async function runPairCommand(
     qrGenerate ?? (options.ascii ? await loadQrGenerate() : undefined);
   const asciiQr =
     options.ascii && resolvedQrGenerate
-      ? await renderAsciiQr(payload.setupCode, resolvedQrGenerate)
+      ? await renderAsciiQr(buildPairingQrPayload(payload), resolvedQrGenerate)
       : "";
   stdout.write(`${formatHumanPairOutput(payload, asciiQr)}`);
 }

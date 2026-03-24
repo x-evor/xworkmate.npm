@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  buildPairingQrPayload,
   buildOpenClawQrArgs,
   formatHumanPairOutput,
   parsePairArgs,
@@ -94,6 +95,7 @@ describe("runPairCommand", () => {
 
   it("renders branded human output by default", async () => {
     const stdout = { write: vi.fn() };
+    let qrInput = "";
     const spawn = vi.fn(() => ({
       error: undefined,
       status: 0,
@@ -105,7 +107,10 @@ describe("runPairCommand", () => {
       }),
       stderr: "",
     }));
-    const qrGenerate = vi.fn((_input, _opts, cb) => cb("ASCII-QR"));
+    const qrGenerate = vi.fn((input, _opts, cb) => {
+      qrInput = input;
+      cb("ASCII-QR");
+    });
 
     await runPairCommand([], {
       stdout,
@@ -119,6 +124,15 @@ describe("runPairCommand", () => {
     expect(rendered).toContain("ASCII-QR");
     expect(rendered).toContain("Setup code: SETUP-CODE");
     expect(rendered).toContain("openclaw devices approve <requestId>");
+    expect(JSON.parse(qrInput)).toEqual({
+      version: 1,
+      kind: "xworkmate.setup",
+      setupCode: "SETUP-CODE",
+      gatewayUrl: "ws://gateway.local:18789",
+      auth: "token",
+      urlSource: "config",
+      sourceCommand: "openclaw qr --json",
+    });
   });
 
   it("returns json contract in json mode", async () => {
@@ -153,6 +167,30 @@ describe("runPairCommand", () => {
   });
 });
 
+describe("buildPairingQrPayload", () => {
+  it("builds a JSON envelope for mobile scan compatibility", () => {
+    expect(
+      JSON.parse(
+        buildPairingQrPayload({
+          setupCode: "SETUP-CODE",
+          gatewayUrl: "wss://gateway.example.com",
+          auth: "token",
+          urlSource: "config",
+          sourceCommand: "xworkmate pair",
+        }),
+      ),
+    ).toEqual({
+      version: 1,
+      kind: "xworkmate.setup",
+      setupCode: "SETUP-CODE",
+      gatewayUrl: "wss://gateway.example.com",
+      auth: "token",
+      urlSource: "config",
+      sourceCommand: "xworkmate pair",
+    });
+  });
+});
+
 describe("formatHumanPairOutput", () => {
   it("produces branded output", () => {
     expect(
@@ -166,5 +204,19 @@ describe("formatHumanPairOutput", () => {
         "ASCII-QR",
       ),
     ).toContain("Scan this QR with XWorkmate.");
+  });
+
+  it("handles empty ASCII QR", () => {
+    const output = formatHumanPairOutput(
+      {
+        setupCode: "SETUP-CODE",
+        gatewayUrl: "ws://gateway.local:18789",
+        auth: "token",
+        urlSource: "config",
+      },
+      "",
+    );
+    expect(output).toContain("Setup code: SETUP-CODE");
+    expect(output).not.toContain("ASCII-QR");
   });
 });
